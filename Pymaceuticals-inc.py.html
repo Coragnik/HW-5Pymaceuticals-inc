@@ -1,0 +1,322 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[4]:
+
+
+# Dependencies and Setup
+get_ipython().run_line_magic('matplotlib', 'inline')
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+
+# In[5]:
+
+
+# Hide warning messages in notebook
+import warnings
+warnings.filterwarnings('ignore')
+
+# File to Load
+mouse_drug_data_to_load = "data/mouse_drug_data.csv"
+clinical_trial_data_to_load = "data/clinicaltrial_data.csv"
+
+# Read the Mouse and Drug Data and the Clinical Trial Data
+mouse_data = pd.read_csv(mouse_drug_data_to_load)
+clinical_data = pd.read_csv(clinical_trial_data_to_load)
+
+
+# In[6]:
+
+
+#Combine the data into a single dataset by merging clinical_data and mouse_data
+Combine = pd.merge(clinical_data, mouse_data,on ="Mouse ID",how='inner')
+
+
+# In[17]:
+
+
+#Combine the data into a single dataset by merging clinical_data and mouse_data
+Combine = pd.merge(clinical_data, mouse_data,how='outer', on='Mouse ID')
+
+
+# In[13]:
+
+
+Combine.head()
+
+
+# In[20]:
+
+
+Combine.sort_values(["Timepoint"], ascending = True).style.format({"	Tumor Volume (mm3)":"{:.2f}"})
+
+
+# In[58]:
+
+
+#Tumor Response to Treatment
+#convert into datadrame
+clinical_data = clinical_data.drop(clinical_data.loc[clinical_data['Mouse ID']=='g989'].index)
+mouse_data = mouse_data.drop(mouse_data.loc[mouse_data['Mouse ID']=='g989'].index)
+dataframe = pd.merge(clinical_data, mouse_data, on='Mouse ID', how='inner')
+dataframe.head()
+
+
+# In[173]:
+
+
+#we only want drug,timepoint and tumor volume(mean)
+New_tumor = dataframe.groupby(['Drug', 'Timepoint'])
+Tumor = pd.DataFrame()
+Tumor['Timepoint'] = New_tumor['Timepoint'].sem()
+Tumor['Tumor Volume (mm3)'] = New_tumor['Tumor Volume (mm3)'].mean()
+Tumor.index.name = True
+Tumor.head(100)
+
+
+# In[69]:
+
+
+# Store the Standard Error of Tumor Volumes Grouped by Drug and Timepoint
+# Convert to DataFrame
+# Preview DataFrame
+New_tumor = dataframe.groupby(['Drug', 'Timepoint'])
+Tumor = pd.DataFrame()
+
+Tumor['Tumor Volume (mm3)'] = New_tumor['Tumor Volume (mm3)'].mean()
+Tumor['Standard Error'] = New_tumor ['Tumor Volume (mm3)'].sem()
+Tumor.index.name = True
+Tumor.head()
+
+
+# In[77]:
+
+
+# Minor Data Munging to Re-Format the Data Frames
+# Preview that Reformatting worked
+Tumor_mean = Tumor['Tumor Volume (mm3)'].unstack(level=0)
+Tumor_Stand = Tumor['Standard Error'].unstack(level=0)
+Tumor_mean.head()
+
+
+# In[87]:
+
+
+import matplotlib as mpl
+
+# Generate the Plot (with Error Bars)
+mpl.rcParams['figure.dpi']= 100
+mpl.rcParams['font.family'] = 'sans-serif'
+mpl.rcParams['font.sans-serif'] = ['Arial']
+Drugs = ['Capomulin', 'Infubinol', 'Ketapril', 'Placebo']
+
+
+markers = ['o', '^', 's', 'd']
+colors = ['r', 'b', 'g', 'k']
+x = Tumor_mean.index
+for i in range(len(drugs)):
+    drug = drugs[i]
+    plt.errorbar(x, Tumor_mean[drug], yerr=Tumor_Stand[drug], linestyle='--', linewidth=0.7, dashes=(7, 7), 
+                 color=colors[i], capsize=3, marker=markers[i], markersize=4, markerfacecolor=colors[i], 
+                 markeredgecolor='k', markeredgewidth=0.7, capthick=0.7)
+    
+#label x and y..amn title--et ajouter le titre.
+plt.xticks(range(0,46,5))    
+plt.xlim((-1, 46))
+plt.ylim((30, 75))
+
+
+plt.xlabel('Time (Days)')
+plt.ylabel('Tumor Volume ($mm^3$)')
+plt.title('Tumor Response to Treatment')
+
+
+plt.legend(loc='best', framealpha=0, edgecolor='k')
+plt.grid(linestyle='--', dashes=(2, 8), linewidth=0.25, color='k')
+
+
+# In[94]:
+
+
+# Metastatic Response to Treatment
+# Store the Mean Met. Site Data Grouped by Drug and Timepoint 
+# Convert to DataFrame
+# Preview DataFrame
+New_tumor= data.groupby(['Drug', 'Timepoint'])
+metastatic = pd.DataFrame()
+metastatic['Standard Error'] = New_tumor['Metastatic Sites'].sem()
+metastatic['Metastatic Sites'] = New_tumor['Metastatic Sites'].mean()
+metastatic.head()
+
+
+# In[107]:
+
+
+metastatic_mean = Tumor['Tumor Volume (mm3)'].unstack(level=0)
+metastatic_stand = metastatic['Standard Error'].unstack(level=0)
+metastatic_mean.head()
+
+
+# In[110]:
+
+
+metastatic_mean = metastatic['Metastatic Sites'].unstack(level=0)
+metastatic_stand = metastatic['Standard Error'].unstack(level=0)
+metastatic_mean.head()
+
+
+# In[124]:
+
+
+drugs = ['Capomulin', 'Infubinol', 'Ketapril', 'Placebo']
+markers = ['o', '^', 's', 'd']
+colors = ['r', 'b', 'g', 'k']
+x = metastatic_mean.index
+for i in range(len(drugs)):
+    drug = drugs[i]
+    plt.errorbar(x, metastatic_mean[drug], yerr=metastatic_stand[drug], linestyle='--', linewidth=1, 
+                 dashes=(7, 7), color=colors[i], capsize=4, markersize=4, 
+                 markerfacecolor=colors[i], markeredgecolor='k', markeredgewidth=1, capthick=0)
+
+plt.xticks(range(0,46,5))    
+plt.xlim((-1, 46))
+plt.ylim((-0.1, 4))
+plt.legend(loc='best', framealpha=1, edgecolor='k')
+plt.grid(linestyle='--', dashes=(2, 8), linewidth=0.5, color='k')
+plt.xlabel('Treatment Duration (Days)')
+plt.ylabel('Metastatic Sites')
+plt.title('Metastatic Spread During Treatment')
+
+
+# In[126]:
+
+
+# Survival Rates
+# Store the Count of Mice Grouped by Drug and Timepoint (W can pass any metric)
+New_tumor= data.groupby(['Drug', 'Timepoint'])
+# Convert to DataFrame
+survival_rate = pd.DataFrame()
+# Preview DataFrame
+survival_rate['Mouse Count'] = New_tumor['Mouse ID'].count()
+survival_rate.head()
+
+
+# In[141]:
+
+
+# Minor Data Munging to Re-Format the Data Frames
+# Preview the Data Frame
+survival_rate_count = survival['Mouse Count'].unstack(level=0)
+survival_rate_count.head()
+
+
+# In[147]:
+
+
+drugs = ['Capomulin', 'Infubinol', 'Ketapril', 'Placebo']
+markers = ['o', '^', 's', 'd']
+colors = ['r', 'b', 'g', 'k']
+x = survival_count.index
+for i in range(len(drugs)):
+    drug = drugs[i]
+    survival_rate = survival_count[drug] / survival_count.loc[0, drug] * 100
+    plt.errorbar(x, survival_rate, linestyle='--', linewidth=0.2, 
+                 dashes=(7, 7), color=colors[i], marker=markers[i], markersize=4, 
+                 markerfacecolor=colors[i], markeredgecolor='k', markeredgewidth=0.7)
+
+#label   
+
+plt.xlabel('Time (Days)')
+plt.ylabel('Survival Rate (%)')
+plt.title('Survival During Treatment')
+
+
+
+plt.xticks(range(0,46,10))    
+plt.xlim((-1, 46))
+plt.ylim((40, 102))
+plt.grid(linestyle='--', dashes=(2, 8), linewidth=0.5, color='k')
+plt.legend(loc='best', framealpha=1, edgecolor='k')
+
+
+# In[172]:
+
+
+# Summary Bar Graph
+# Calculate the percent changes for each drug
+
+New_tumor = data.groupby(['Drug', 'Timepoint'])
+tumor_percent = pd.DataFrame()
+
+
+tumor_percent[' Tumor Volume'] = New_tumor['Tumor Volume (mm3)'].mean()
+tumor_percent = tumor_percent.unstack(level=-1)
+tumor_percent.columns = tumor_percent.columns.droplevel(level=0)
+
+
+
+tumor_percent['% Tumor Volume Change'] = (tumor_percent[45] - tumor_percent[0]) / tumor_percent[0] * 100
+tumor_percent = tumor_change[['% Tumor Volume Change']]
+
+# Display the data to confirm
+tumor_percent.head(10)
+
+
+# In[176]:
+
+
+# Store 
+Drugs = ['Capomulin', 'Infubinol', 'Ketapril', 'Placebo']
+
+# DEFIne color based on percent(if)
+Colors = ['r' if (tumor_change.loc[drug]>0).values[0] else 'g' for drug in drugs]
+
+# Splice the data between passing and failing drugs
+# Orient widths. Add labels, tick marks, etc.
+ax = tumor_change.loc[drugs].plot(kind='bar', color=[tuple(colors)], rot=0, legend=False, alpha=0.8,
+                            edgecolor = 'k', linewidth=0.3, width=1, figsize=(5,4))
+
+plt.xlim((-0.5, 3.5))
+plt.ylim((-25, 65))
+plt.yticks(range(-20,70,20))
+plt.grid(linestyle='--', dashes=(1, 4), linewidth=0.5, color='k')
+
+
+
+plt.title('Tumor Change Over 45 Days Treatment')
+plt.ylabel('% Tumor Volume Change')
+plt.xlabel('Drug')
+
+
+
+
+# Use functions to label the percentages of changes
+posx = range(len(drugs))
+posy = [3 if (tumor_change.loc[drug]>0).values[0] else -4 for drug in drugs]
+va = ['bottom' if (tumor_change.loc[drug]>0).values[0] else 'top' for drug in drugs]
+labels = tumor_change.loc[drugs].values
+
+for i in range(len(drugs)):
+    ax.text(posx[i], posy[i], '%1.0d%%' % int(labels[i]), ha='center', va=va[i], color='w')
+    
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
